@@ -33,6 +33,7 @@
 #include "xdp-utils.h"
 #include "xdp-call.h"
 #include "xdp-dbus.h"
+#include "xdp-diagnostic-desktop.h"
 #include "xdp-documents.h"
 #include "xdp-impl-dbus.h"
 #include "xdp-method-info.h"
@@ -243,6 +244,7 @@ on_bus_acquired (GDBusConnection *connection,
                  const gchar     *name,
                  gpointer         user_data)
 {
+  XdpDiagnosticDesktop *diagnotic_desktop;
   XdpPortalImplementation *implementation;
   XdpPortalImplementation *lockdown_impl;
   XdpPortalImplementation *access_impl;
@@ -269,6 +271,14 @@ on_bus_acquired (GDBusConnection *connection,
       return;
     }
 
+  diagnotic_desktop = xdp_diagnostic_desktop_get (&error);
+  if (diagnotic_desktop == NULL)
+    {
+      g_critical ("No diagnostic portal desktop interfaces created: %s", error->message);
+      exit_with_status (1);
+      return;
+    }
+
   lockdown_impl = find_portal_implementation ("org.freedesktop.impl.portal.Lockdown");
   if (lockdown_impl != NULL)
     lockdown = xdp_dbus_impl_lockdown_proxy_new_sync (connection,
@@ -276,6 +286,8 @@ on_bus_acquired (GDBusConnection *connection,
                                                       lockdown_impl->dbus_name,
                                                       DESKTOP_PORTAL_OBJECT_PATH,
                                                       NULL, NULL);
+
+  xdp_diagnostic_desktop_set_lockdown_impl (diagnotic_desktop, lockdown_impl->dbus_name);
 
   if (lockdown == NULL)
     lockdown = xdp_dbus_impl_lockdown_skeleton_new ();
@@ -319,6 +331,7 @@ on_bus_acquired (GDBusConnection *connection,
                                   inhibit_create (connection, implementation->dbus_name));
 
   access_impl = find_portal_implementation ("org.freedesktop.impl.portal.Access");
+  xdp_diagnostic_desktop_set_access_impl (diagnotic_desktop, access_impl->dbus_name);
   if (access_impl != NULL)
     {
       XdpPortalImplementation *tmp;
@@ -410,6 +423,8 @@ on_bus_acquired (GDBusConnection *connection,
 #endif
 
   export_host_portal_implementation (connection, registry_create (connection));
+
+  xdp_diagnostic_desktop_update_properties (diagnotic_desktop);
 }
 
 static void
