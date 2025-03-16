@@ -281,13 +281,16 @@ on_bus_acquired (GDBusConnection *connection,
 
   lockdown_impl = find_portal_implementation ("org.freedesktop.impl.portal.Lockdown");
   if (lockdown_impl != NULL)
-    lockdown = xdp_dbus_impl_lockdown_proxy_new_sync (connection,
-                                                      G_DBUS_PROXY_FLAGS_NONE,
-                                                      lockdown_impl->dbus_name,
-                                                      DESKTOP_PORTAL_OBJECT_PATH,
-                                                      NULL, NULL);
+    {
+      lockdown = xdp_dbus_impl_lockdown_proxy_new_sync (connection,
+                                                        G_DBUS_PROXY_FLAGS_NONE,
+                                                        lockdown_impl->dbus_name,
+                                                        DESKTOP_PORTAL_OBJECT_PATH,
+                                                        NULL, NULL);
 
-  xdp_diagnostic_desktop_set_lockdown_impl (diagnotic_desktop, lockdown_impl->dbus_name);
+      xdp_diagnostic_desktop_set_lockdown_impl (diagnotic_desktop,
+                                                lockdown_impl->dbus_name);
+    }
 
   if (lockdown == NULL)
     lockdown = xdp_dbus_impl_lockdown_skeleton_new ();
@@ -331,10 +334,11 @@ on_bus_acquired (GDBusConnection *connection,
                                   inhibit_create (connection, implementation->dbus_name));
 
   access_impl = find_portal_implementation ("org.freedesktop.impl.portal.Access");
-  xdp_diagnostic_desktop_set_access_impl (diagnotic_desktop, access_impl->dbus_name);
   if (access_impl != NULL)
     {
       XdpPortalImplementation *tmp;
+
+      xdp_diagnostic_desktop_set_access_impl (diagnotic_desktop, access_impl->dbus_name);
 
 #ifdef HAVE_GEOCLUE
       export_portal_implementation (connection,
