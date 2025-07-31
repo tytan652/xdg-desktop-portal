@@ -6,6 +6,7 @@ import tests.xdp_utils as xdp
 
 import dbus
 import pytest
+import os
 
 
 @pytest.fixture
@@ -137,3 +138,16 @@ class TestCamera:
         # Check the impl portal was called with the right args
         method_calls = mock_intf.GetMethodCalls("AccessDialog")
         assert len(method_calls) == 0
+
+    def test_open_pipewire_remote(self, portals, wireplumber, dbus_con, app_id):
+        camera_intf = xdp.get_portal_iface(dbus_con, "Camera")
+
+        self.set_permissions(dbus_con, app_id, ["yes"])
+
+        fd_object = camera_intf.OpenPipeWireRemote({})
+
+        fd = fd_object.take()
+
+        assert fd != -1
+
+        os.close(fd)
