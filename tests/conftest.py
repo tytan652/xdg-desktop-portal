@@ -11,6 +11,7 @@ import dbusmock
 import os
 import sys
 import tempfile
+import shutil
 import subprocess
 import time
 import signal
@@ -95,6 +96,8 @@ def create_test_dirs(umockdev: Optional[UMockdev.Testbed]) -> Iterator[None]:
         "XDG_DATA_HOME",
         "XDG_RUNTIME_DIR",
         "XDG_DESKTOP_PORTAL_DIR",
+        "PIPEWIRE_CONF_DIR",
+        "WIREPLUMBER_CONFIG_DIR",
     ]
 
     test_root = tempfile.TemporaryDirectory(
@@ -588,3 +591,396 @@ def dbus_con_sys(create_test_dbus: dbusmock.DBusTestCase) -> dbus.Bus:
     con_sys = create_test_dbus.get_dbus(system_bus=True)
     assert con_sys
     return con_sys
+
+
+@pytest.fixture
+def pipewire_conf_dir_files() -> Dict[str, bytes]:
+    """
+    Default fixture which can be used to create files in the temporary
+    PIPEWIRE_CONF_DIR directory of the test.
+    """
+    return {}
+
+
+@pytest.fixture
+def pipewire_conf_dir_default_files() -> Dict[str, bytes]:
+    files = {}
+
+    files["pipewire.conf"] = b"""
+context.properties = {
+    core.daemon = true
+    core.name   = pipewire-0
+}
+
+context.spa-libs = {}
+
+context-modules = [
+    { name = libpipewire-module-protocol-native }
+
+    { name = libpipewire-module-metadata }
+
+    { name = libpipewire-module-spa-device-factory }
+
+    { name = libpipewire-module-spa-node-factory }
+
+    { name = libpipewire-module-client-node }
+
+    { name = libpipewire-module-client-device }
+
+    { name = libpipewire-module-portal }
+
+    { name = libpipewire-module-access }
+
+    { name = libpipewire-module-link-factory }
+
+    { name = libpipewire-module-session-manager }
+]
+"""
+
+    files["client.conf"] = b"""
+context.properties = {
+    log.level = 0
+}
+
+context.spa-libs = {}
+
+context.modules = {
+  { name = libpipewire-module-protocol-native }
+
+  { name = libpipewire-module-client-node }
+
+  { name = libpipewire-module-client-device }
+
+  { name = libpipewire-module-metadata }
+
+  { name = libpipewire-module-session-manager }
+}
+"""
+
+    return files
+
+
+@pytest.fixture(autouse=True)
+def ensure_pipewire_conf_dir(
+    create_test_dirs: Any,
+    pipewire_conf_dir_files: Dict[str, bytes],
+    pipewire_conf_dir_default_files: Dict[str, bytes],
+) -> None:
+    files = pipewire_conf_dir_default_files | pipewire_conf_dir_files
+    for name, content in files.items():
+        file_path = Path(os.environ["PIPEWIRE_CONF_DIR"]) / name
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path.absolute().as_posix(), "wb") as f:
+            f.write(content)
+
+
+@pytest.fixture
+def pipewire(dbus_con: Any) -> Iterator[subprocess.Popen]:
+    """
+    Fixture which starts and eventually stops PipeWire
+    """
+    exec = shutil.which("pipewire")
+    if exec is None:
+        raise shutil.Error("pipewire path was not found")
+
+    pipewire = subprocess.Popen([exec])
+
+    while not (Path(os.environ["XDG_RUNTIME_DIR"]) / "pipewire-0").exists():
+        returncode = pipewire.poll()
+        if returncode is not None:
+            raise subprocess.SubprocessError(
+                f"PipeWire daemon exited with {returncode}"
+            )
+        time.sleep(0.1)
+
+    yield pipewire
+
+    pipewire.send_signal(signal.SIGINT)
+    returncode = pipewire.wait()
+    assert returncode == 0
+
+
+@pytest.fixture
+def wireplumber_conf_dir_files() -> Dict[str, bytes]:
+    """
+    Default fixture which can be used to create files in the temporary
+    WIREPLUMBER_CONFIG_DIR directory of the test.
+    """
+    return {}
+
+
+@pytest.fixture
+def wireplumber_conf_dir_default_files() -> Dict[str, bytes]:
+    files = {}
+
+    files["wireplumber.conf"] = b"""
+context.spa-libs = {}
+
+context.modules = [
+  { name = libpipewire-module-protocol-native }
+
+  { name = libpipewire-module-metadata }
+]
+
+wireplumber.profiles = {
+  base = {
+    check.no-media-session = required
+    support.settings = required
+    support.log-settings = required
+    support.session-services = required
+  }
+
+  main = {
+    inherits = [ base ]
+
+    metadata.sm-settings = required
+    metadata.sm-objects = required
+
+    policy.minimized = required
+  }
+}
+
+wireplumber.components = [
+  {
+    name = ensure-no-media-session, type = built-in
+    provides = chech.no-media-session
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-settings, type = module
+    arguments = { metadata.name = sm-settings }
+    provides = metadata.sm-settings
+    before = [ support.session-services ]
+  }
+
+  {
+    name = settings-instance, type = built-in
+    arguments = { metadata.name = sm-settings }
+    provides = support.settings
+    after = [ metadata.sm-settings ]
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-log-settings, type = module
+    provides = support.log-settings
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-lua-scripting, type = module
+    provides = support.lua-scripting
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-standard-event-source, type = module
+    provides = support.standard-event-source
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-dbus-connection, type = module
+    provides = support.dbus
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-portal-permissionstore, type = module
+    provides = support.portal-permissionstore
+    requires = [ support.dbus ]
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-si-node, type = module
+    provides = si.node
+    before = [ support.session-services ]
+  }
+  {
+    name = libwireplumber-module-si-audio-adapter, type = module
+    provides = si.audio-adapter
+    before = [ support.session-services ]
+  }
+  {
+    name = libwireplumber-module-si-standard-link, type = module
+    provides = si.standard-link
+    before = [ support.session-services ]
+  }
+
+  {
+    name = libwireplumber-module-default-nodes-api, type = module
+    provides = api.default-nodes
+    before = [ support.session-services ]
+  }
+
+  {
+    name = sm-objects.lua, type = script/lua
+    provides = metadata.sm-objects
+    requires = [ support.lua-scripting ]
+    before = [ support.session-services ]
+  }
+
+  {
+    name = session-services.lua, type = script/lua
+    provides = support.session-services
+    requires = [ support.lua-scripting ]
+  }
+
+  {
+    name = client/access-default.lua, type = script/lua
+    provides = script.client.access-default
+    requires = [ support.lua-scripting ]
+    before = [ support.session-services ]
+  }
+  {
+    name = client/access-portal.lua, type = script/lua
+    provides = script.client.access-portal
+    requires = [ support.portal-permissionstore, support.lua-scripting ]
+    before = [ support.session-services ]
+  }
+  {
+    type = virtual, provides = policy.client.access
+    requires = [ script.client.access-default,
+                 script.client.access-portal ]
+    before = [ support.session-services ]
+  }
+
+  {
+    name = linking/rescan.lua, type = script/lua
+    provides = hooks.linking.rescan
+    requires = [ support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+  {
+    name = linking/prepare-link.lua, type = script/lua
+    provides = hooks.linking.target.prepare-link
+    requires = [ api.default-nodes, support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+  {
+    name = linking/link-target.lua, type = script/lua
+    provides = hooks.linking.target.link
+    requires = [ si.standard-link, support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+
+  {
+    type = virtual, provides = policy.linking.standard
+    requires = [ hooks.linking.rescan,
+                 hooks.linking.target.prepare-link,
+                 hooks.linking.target.link ]
+    before = [ support.session-services ]
+  }
+
+  {
+    name = node/create-item.lua, type = script/lua
+    provides = hooks.node.create-session-item
+    requires = [ si.audio-adapter,
+                 si.node,
+                 support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+  {
+    name = node/suspend-node.lua, type = script/lua
+    provides = hooks.node.suspend
+    requires = [ support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+  {
+    name = node/state-stream.lua, type = script/lua
+    provides = hooks.stream.state
+    requires = [ support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+  {
+    name = node/filter-forward-format.lua, type = script/lua
+    provides = hooks.filter.forward-format
+    requires = [ support.lua-scripting ]
+    before = [ support.session-services,
+               support.standard-event-source ]
+  }
+  {
+    type = virtual, provides = policy.node
+    requires = [ hooks.node.create-session-item ]
+    wants = [ hooks.node.suspend
+              hooks.stream.state
+              hooks.filter.forward-format ]
+    before = [ support.session-services ]
+  }
+
+  {
+    type = virtual, provides = policy.minimized
+    requires = [ policy.client.access
+                 policy.linking.standard
+                 policy.node
+                 support.standard-event-source ]
+    before = [ support.session-services ]
+  }
+]
+
+wireplumber.settings.schema = {
+  linking.allow-moving-streams = {
+    name = "Allow moving streams"
+    description = "Streams may be moved by adding PipeWire metadata at runtime"
+    type = "bool"
+    default = true
+  }
+
+  node.stream.restore-props = {
+    name = "Restore properties"
+    description = "Remember and restore properties of streams"
+    type = "bool"
+    default = true
+  }
+  node.stream.restore-target = {
+    name = "Restore target"
+    description = "Remember and restore stream targets"
+    type = "bool"
+    default = true
+  }
+}
+"""
+
+    return files
+
+
+@pytest.fixture(autouse=True)
+def ensure_wireplumber_conf_dir(
+    create_test_dirs: Any,
+    wireplumber_conf_dir_files: Dict[str, bytes],
+    wireplumber_conf_dir_default_files: Dict[str, bytes],
+) -> None:
+    files = wireplumber_conf_dir_default_files | wireplumber_conf_dir_files
+    for name, content in files.items():
+        file_path = Path(os.environ["WIREPLUMBER_CONFIG_DIR"]) / name
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path.absolute().as_posix(), "wb") as f:
+            f.write(content)
+
+
+@pytest.fixture
+def wireplumber(pipewire: Any) -> Iterator[subprocess.Popen]:
+    """
+    Fixture which starts and eventually stops WirePlumber
+    """
+    exec = shutil.which("wireplumber")
+    if exec is None:
+        raise shutil.Error("wireplumber path was not found")
+
+    wireplumber = subprocess.Popen([exec])
+
+    time.sleep(1)  # FIXME: ensure the process is done initializing
+
+    yield wireplumber
+
+    wireplumber.send_signal(signal.SIGINT)
+    returncode = wireplumber.wait()
+    assert returncode == 0

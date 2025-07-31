@@ -119,6 +119,7 @@ geoclue_dep = dependency(
   required: get_option('geoclue'),
 )
 pipewire_dep = dependency('libpipewire-0.3', version: '>= 0.2.90')
+wireplumber_dep = dependency('wireplumber-0.5', required: get_option('tests'))
 libsystemd_dep = dependency('libsystemd', required: get_option('systemd'))
 gudev_dep = dependency('gudev-1.0', required: get_option('gudev'))
 umockdev_dep = dependency('umockdev-1.0', required: get_option('tests'))
@@ -142,6 +143,8 @@ python = pymod.find_installation(
   modules: ['dbus', 'dbusmock', 'gi'],
   required: get_option('tests'),
 )
+pipewire = find_program('pipewire', required: get_option('tests'))
+wireplumber = find_program('wireplumber', required: get_option('tests'))
 
 bwrap = find_program('bwrap', required: get_option('sandboxed-image-validation').allowed() or get_option('sandboxed-sound-validation').allowed())
 
