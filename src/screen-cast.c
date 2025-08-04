@@ -429,6 +429,7 @@ static XdpOptionKey screen_cast_select_sources_options[] = {
   { "cursor_mode", G_VARIANT_TYPE_UINT32, validate_cursor_mode },
   { "restore_token", G_VARIANT_TYPE_STRING, validate_restore_token },
   { "persist_mode", G_VARIANT_TYPE_UINT32, validate_persist_mode },
+  { "restore_only", G_VARIANT_TYPE_BOOLEAN, NULL },
 };
 
 static gboolean
@@ -460,12 +461,31 @@ replace_screen_cast_restore_token_with_data (XdpSession *session,
   if (IS_SCREEN_CAST_SESSION (session))
     {
       ScreenCastSession *screen_cast_session = SCREEN_CAST_SESSION (session);
+      gboolean has_restore_only = xdp_variant_contains_key (options, "restore_only");
+
+      if (impl_version < 6 && has_restore_only)
+        {
+          g_set_error (error,
+                       XDG_DESKTOP_PORTAL_ERROR,
+                       XDG_DESKTOP_PORTAL_ERROR_INVALID_ARGUMENT,
+                       "ScreenCast implementation do not support restore only");
+          return FALSE;
+        }
 
       screen_cast_session->persist_mode = persist_mode;
       xdp_session_persistence_replace_restore_token_with_data (session,
                                                                SCREEN_CAST_TABLE,
                                                                in_out_options,
                                                                &screen_cast_session->restore_token);
+
+      if (has_restore_only && !xdp_variant_contains_key (*in_out_options, "restore_data"))
+        {
+          g_set_error (error,
+                       XDG_DESKTOP_PORTAL_ERROR,
+                       XDG_DESKTOP_PORTAL_ERROR_FAILED,
+                       "No restore data found");
+          return FALSE;
+        }
     }
   else
     {
@@ -1070,7 +1090,7 @@ on_supported_cursor_modes_changed (GObject *gobject,
 static void
 screen_cast_init (ScreenCast *screen_cast)
 {
-  xdp_dbus_screen_cast_set_version (XDP_DBUS_SCREEN_CAST (screen_cast), 5);
+  xdp_dbus_screen_cast_set_version (XDP_DBUS_SCREEN_CAST (screen_cast), 6);
 
   g_signal_connect (impl, "notify::supported-source-types",
                     G_CALLBACK (on_supported_source_types_changed),

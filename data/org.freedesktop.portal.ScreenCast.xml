@@ -25,7 +25,7 @@
 
       The Screen cast portal allows to create screen cast sessions.
 
-      This documentation describes version 5 of this interface.
+      This documentation describes version 6 of this interface.
   -->
   <interface name="org.freedesktop.portal.ScreenCast">
     <!--
@@ -144,6 +144,13 @@
           :ref:`org.freedesktop.portal.ScreenCast.Start` method.
 
           This option was added in version 4 of this interface.
+
+        * ``restore_only`` (``b``)
+
+          If true and the stored session cannot be restored, the session is closed
+          by the portal itself. Default is false.
+
+          This option was added in version 6 of this interface.
 
         For available source types, see the AvailableSourceTypes property.
     -->
