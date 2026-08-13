@@ -42,7 +42,8 @@ Camera
 An object manager is in place to watch for nodes that matches the the following
 properties:
 
-- ``PW_KEY_MEDIA_ROLE`` is set to ``"Camera"``
+- ``PW_KEY_DEVICE_API`` value is present in the configured allowed APIs
+  (``camera.device-apis`` argument)
 - ``PW_KEY_MEDIA_CLASS`` to ``"Video/Source"``
 
 A matching node will be considered as a camera.
@@ -75,3 +76,14 @@ Defined metadata:
 
 - ``XDP_PW_KEY_CAMERA_PRESENT``, with subject ``PW_ID_CORE`` and type boolean,
   set to true if the camera object manager find any camera, otherwise false
+
+Components Arguments
+""""""""""""""""""""
+
+The plugin has arguments that can be configured in WirePlumber config files
+(e.g. merge action in ``wireplumber.components.rules``).
+
+The following arguments are supported:
+
+- ``camera.device-apis`` (defaults ``[ v4l2, camera ]``) allows to set the list
+  of allowed device APIs for the camera object manager
