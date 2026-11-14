@@ -52,26 +52,26 @@ update_client_camera_permission (XdpWpPermissionManager *self,
 {
   g_autofree char *value = NULL;
   gboolean allowed;
-  const char *roles = NULL;
-  g_auto(GStrv) rolesv = NULL;
+  const char *scope = NULL;
+  g_auto(GStrv) scopev = NULL;
   g_autoptr(WpIterator) node_iter = NULL;
   g_auto(GValue) node_value = G_VALUE_INIT;
 
   allowed =
     iter && g_variant_iter_next (iter, "s", &value) && (g_strcmp0 (value, "yes") == 0);
 
-  roles = wp_pipewire_object_get_property (WP_PIPEWIRE_OBJECT (client),
-                                           XDP_PW_KEY_MEDIA_ROLES);
+  scope = wp_pipewire_object_get_property (WP_PIPEWIRE_OBJECT (client),
+                                           XDP_PW_KEY_SCOPE);
 
-  if (!roles)
+  if (!scope)
     {
-      wp_warning_object (client, "Client has no media roles set");
+      wp_warning_object (client, "Client has no portal scope set");
       return;
     }
 
-  rolesv = g_strsplit (roles, ",", 0);
+  scopev = g_strsplit (scope, ",", 0);
 
-  if (!g_strv_contains ((const gchar* const*) rolesv, "Camera"))
+  if (!g_strv_contains ((const gchar* const*) scopev, "Camera"))
     return;
 
   wp_info_object (client, "Update camera permissions");

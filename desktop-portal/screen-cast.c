@@ -685,7 +685,7 @@ open_pipewire_screen_cast_remote (const char *app_id,
   g_autoptr(GArray) permission_items = NULL;
 
   pipewire_properties = pw_properties_new (XDP_PW_KEY_APP_ID, app_id,
-                                           XDP_PW_KEY_MEDIA_ROLES, "",
+                                           XDP_PW_KEY_SCOPE, "ScreenCast",
                                            NULL);
   remote = pipewire_remote_new_sync (pipewire_properties,
                                      NULL, NULL, NULL, NULL,

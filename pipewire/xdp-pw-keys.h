@@ -11,4 +11,4 @@
 
 #define XDP_PW_KEY_DAEMON XDP_PW_NAMESPACE ".daemon"
 #define XDP_PW_KEY_APP_ID XDP_PW_NAMESPACE ".app_id"
-#define XDP_PW_KEY_MEDIA_ROLES XDP_PW_NAMESPACE ".media_roles"
+#define XDP_PW_KEY_SCOPE XDP_PW_NAMESPACE ".scope"

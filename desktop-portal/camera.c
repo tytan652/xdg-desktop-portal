@@ -212,7 +212,7 @@ open_pipewire_camera_remote (const char *app_id,
 
   pipewire_properties =
     pw_properties_new (XDP_PW_KEY_APP_ID, app_id,
-                       XDP_PW_KEY_MEDIA_ROLES, "Camera",
+                       XDP_PW_KEY_SCOPE, "Camera",
                        NULL);
   remote = pipewire_remote_new_sync (pipewire_properties,
                                      NULL, NULL, NULL, NULL,

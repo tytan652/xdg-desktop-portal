@@ -54,7 +54,7 @@ Permission Store
 An object manager watches for clients with ``PW_KEY_ACCESS`` set to
 ``"xdg-desktop-portal"`` and ``XDP_PW_KEY_APP_ID`` assigned to a value.
 
-If xdg-desktop-portal assigned ``XDP_PW_KEY_MEDIA_ROLES`` to ``"Camera"``
+If xdg-desktop-portal assigned ``XDP_PW_KEY_SCOPE`` to ``"Camera"``
 to the PipeWire client and the application is allowed camera permission, access
 to every node detected by the camera object manager will be granted to the
 client.
