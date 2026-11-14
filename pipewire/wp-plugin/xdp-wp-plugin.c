@@ -40,8 +40,8 @@ on_dbus_connection_plugin_state_changed (XdpWpPlugin *self,
                                          GObject     *object)
 {
   WpDBusConnectionState state = -1;
-  g_autoptr (GDBusConnection) connection = NULL;
-  g_autoptr (WpCore) core = wp_object_get_core (WP_OBJECT (self));
+  g_autoptr(GDBusConnection) connection = NULL;
+  g_autoptr(WpCore) core = wp_object_get_core (WP_OBJECT (self));
 
   g_object_get (self->dbus_connection_plugin, "state", &state, NULL);
 
@@ -67,8 +67,8 @@ metadata_init_cb (GObject      *object,
                   gpointer      user_data)
 {
   XdpWpPlugin *self = XDP_WP_PLUGIN (user_data);
-  g_autoptr (WpCore) core = wp_object_get_core (WP_OBJECT (self));;
-  g_autoptr (GError) error = NULL;
+  g_autoptr(WpCore) core = wp_object_get_core (WP_OBJECT (self));;
+  g_autoptr(GError) error = NULL;
 
   self->metadata = xdp_wp_metadata_new_finish (object, res, &error);
   if (G_UNLIKELY (self->metadata == NULL))
@@ -92,7 +92,7 @@ xdp_wp_plugin_enable (WpPlugin     *plugin,
                       WpTransition *transition)
 {
   XdpWpPlugin *self = XDP_WP_PLUGIN (plugin);
-  g_autoptr (WpCore) core = wp_object_get_core (WP_OBJECT (self));
+  g_autoptr(WpCore) core = wp_object_get_core (WP_OBJECT (self));
   WpObjectInterest *interest;
 
   self->cancellable = g_cancellable_new ();

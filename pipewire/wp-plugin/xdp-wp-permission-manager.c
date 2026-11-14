@@ -54,8 +54,8 @@ update_client_camera_permission (XdpWpPermissionManager *self,
   gboolean allowed;
   const char *roles = NULL;
   g_auto(GStrv) rolesv = NULL;
-  g_autoptr (WpIterator) node_iter = NULL;
-  g_auto (GValue) node_value = G_VALUE_INIT;
+  g_autoptr(WpIterator) node_iter = NULL;
+  g_auto(GValue) node_value = G_VALUE_INIT;
 
   allowed =
     iter && g_variant_iter_next (iter, "s", &value) && (g_strcmp0 (value, "yes") == 0);
@@ -96,13 +96,13 @@ update_camera_permissions (XdpWpPermissionManager *self,
                            WpClient               *client,
                            GVariant               *permissions)
 {
-  g_autoptr (GVariant) perms = NULL;
+  g_autoptr(GVariant) perms = NULL;
   const char *app_id = NULL;
 
   if (!permissions)
     {
-      g_autoptr (GVariant) data = NULL;
-      g_autoptr (GError) error = NULL;
+      g_autoptr(GVariant) data = NULL;
+      g_autoptr(GError) error = NULL;
 
       if (!xdp_dbus_impl_permission_store_call_lookup_sync (self->permission_store,
                                                             "devices",
@@ -123,7 +123,7 @@ update_camera_permissions (XdpWpPermissionManager *self,
 
   if (client)
     {
-      g_autoptr (GVariantIter) value = NULL;
+      g_autoptr(GVariantIter) value = NULL;
 
       app_id = wp_pipewire_object_get_property (WP_PIPEWIRE_OBJECT (client),
                                                 XDP_PW_KEY_APP_ID);
@@ -141,14 +141,14 @@ update_camera_permissions (XdpWpPermissionManager *self,
     }
   else
     {
-      g_autoptr (WpIterator) iter = NULL;
-      g_auto (GValue) iter_value = G_VALUE_INIT;
+      g_autoptr(WpIterator) iter = NULL;
+      g_auto(GValue) iter_value = G_VALUE_INIT;
 
       iter = wp_object_manager_new_iterator (self->client_manager);
       while (wp_iterator_next (iter, &iter_value))
         {
           WpClient *client = g_value_get_object (&iter_value);
-          g_autoptr (GVariantIter) value = NULL;
+          g_autoptr(GVariantIter) value = NULL;
 
           app_id = wp_pipewire_object_get_property (WP_PIPEWIRE_OBJECT (client),
                                                     XDP_PW_KEY_APP_ID);
@@ -217,7 +217,7 @@ xdp_wp_permission_manager_set_property (GObject      *object,
 {
   XdpWpPermissionManager *self = XDP_WP_PERMISSION_MANAGER (object);
 
-  switch ((XdpWpPermissionManagerProps)property_id)
+  switch ((XdpWpPermissionManagerProps) property_id)
     {
     case PROP_CORE:
       self->core = g_object_ref (g_value_get_object (value));
@@ -237,7 +237,7 @@ static void
 xdp_wp_permission_manager_constructed (GObject *object)
 {
   XdpWpPermissionManager *self = XDP_WP_PERMISSION_MANAGER (object);
-  g_autoptr (GError) error = NULL;
+  g_autoptr(GError) error = NULL;
 
   G_OBJECT_CLASS (xdp_wp_permission_manager_parent_class)->constructed (object);
 

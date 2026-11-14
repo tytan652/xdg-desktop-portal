@@ -81,7 +81,7 @@ on_metadata_activated (GObject      *object,
                        GAsyncResult *result,
                        gpointer      user_data)
 {
-  g_autoptr (XdpWpMetadata) self = XDP_WP_METADATA (user_data);
+  g_autoptr(XdpWpMetadata) self = XDP_WP_METADATA (user_data);
 
   g_assert (g_direct_equal (self->metadata, object));
 
@@ -186,7 +186,7 @@ xdp_wp_metadata_set_property (GObject      *object,
 {
   XdpWpMetadata *self = XDP_WP_METADATA (object);
 
-  switch ((XdpWpMetadataProps)property_id)
+  switch ((XdpWpMetadataProps) property_id)
     {
     case PROP_CORE:
       self->core = g_object_ref (g_value_get_object (value));
@@ -212,8 +212,8 @@ xdp_wp_metadata_dispose (GObject *object)
    * might be re-used and represent another object. */
   if (wp_object_manager_is_installed (self->xdp_daemon_om))
     {
-      g_autoptr (WpIterator) iter = NULL;
-      g_auto (GValue) value = G_VALUE_INIT;
+      g_autoptr(WpIterator) iter = NULL;
+      g_auto(GValue) value = G_VALUE_INIT;
       uint32_t bound_id = wp_proxy_get_bound_id (WP_PROXY (self->metadata));
 
       iter = wp_object_manager_new_iterator (self->xdp_daemon_om);
