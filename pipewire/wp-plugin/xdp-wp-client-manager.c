@@ -361,17 +361,26 @@ xdp_wp_client_manager_constructed (GObject *object)
   node_factory_om = wp_object_manager_new (); /* Destroyed once the factory is added */
   wp_object_manager_add_interest_full (node_factory_om, g_steal_pointer (&interest));
 
+  interest = wp_object_interest_new_type (WP_TYPE_CLIENT);
+  wp_object_interest_add_constraint (interest,
+                                     WP_CONSTRAINT_TYPE_PW_PROPERTY,
+                                     PW_KEY_ACCESS,
+                                     WP_CONSTRAINT_VERB_EQUALS,
+                                     g_variant_new_string (XDP_PW_ACCESS));
+  wp_object_interest_add_constraint (interest,
+                                     WP_CONSTRAINT_TYPE_PW_PROPERTY,
+                                     XDP_PW_KEY_APP_ID,
+                                     WP_CONSTRAINT_VERB_IS_PRESENT,
+                                     NULL);
+  wp_object_interest_add_constraint (interest,
+                                     WP_CONSTRAINT_TYPE_PW_PROPERTY,
+                                     XDP_PW_KEY_SCOPE,
+                                     WP_CONSTRAINT_VERB_IS_PRESENT,
+                                     NULL);
+  g_assert (wp_object_interest_validate (interest, NULL));
+
   self->client_om = wp_object_manager_new ();
-  wp_object_manager_add_interest (self->client_om,
-                                  WP_TYPE_CLIENT,
-                                  WP_CONSTRAINT_TYPE_PW_PROPERTY,
-                                  PW_KEY_ACCESS,
-                                  "=s",
-                                  XDP_PW_ACCESS,
-                                  WP_CONSTRAINT_TYPE_PW_PROPERTY,
-                                  XDP_PW_KEY_APP_ID,
-                                  "+",
-                                  NULL);
+  wp_object_manager_add_interest_full (self->client_om, g_steal_pointer (&interest));
 
   g_signal_connect_swapped (node_factory_om,
                             "object-added",
