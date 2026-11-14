@@ -149,6 +149,8 @@ xdp_wp_plugin_disable (WpPlugin *plugin)
   g_clear_object (&self->permission_manager);
   g_clear_object (&self->metadata);
 
+  g_clear_object (&self->camera_om);
+
   g_clear_object (&self->dbus_connection_plugin);
   g_clear_object (&self->cancellable);
 
