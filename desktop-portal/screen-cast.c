@@ -702,13 +702,6 @@ open_pipewire_screen_cast_remote (const char *app_id,
   g_array_append_val (permission_items,
                       PERMISSION_ITEM (PW_ID_CORE, PW_PERM_RWX));
 
-  /*
-   * PipeWire:Interface:NodeFactory
-   * Needs r-- so it can be passed to create-object when creating the sink node.
-   */
-  g_array_append_val (permission_items,
-                      PERMISSION_ITEM (remote->node_factory_id, PW_PERM_R));
-
   append_stream_permissions (remote, permission_items, streams);
 
   /*

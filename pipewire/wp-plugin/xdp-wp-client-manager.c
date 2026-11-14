@@ -38,6 +38,8 @@ struct _XdpWpClientManager
   XdpDbusImplPermissionStore *permission_store;
   gulong permission_changed_signal_id;
 
+  guint node_factory_id;
+
   WpObjectManager *camera_om;
   gulong camera_added_signal_id;
 
@@ -257,6 +259,8 @@ on_client_added_cb (XdpWpClientManager *self,
                     WpClient           *client,
                     WpObjectManager    *manager)
 {
+  wp_client_update_permissions (client, 1, self->node_factory_id, PW_PERM_R);
+
   if (wp_object_interest_matches (self->camera_scope, client))
     {
       if (!(self->camera_om && self->permission_store))
@@ -271,6 +275,33 @@ on_client_added_cb (XdpWpClientManager *self,
           update_camera_permissions (self, client, NULL);
         }
     }
+}
+
+static void
+on_node_factory_added_cb (XdpWpClientManager *self,
+                          WpFactory          *factory,
+                          WpObjectManager    *manager)
+{
+  g_autoptr(WpObjectManager) om = manager;
+
+  g_assert (WP_IS_FACTORY (factory));
+
+  self->node_factory_id = wp_proxy_get_bound_id (WP_PROXY (factory));
+  g_assert (self->node_factory_id != 0);
+
+  wp_debug_object (self, "Node factory id: %d", self->node_factory_id);
+
+  self->client_added_signal_id = g_signal_connect_swapped (self->client_om,
+                                                           "object-added",
+                                                           G_CALLBACK (on_client_added_cb),
+                                                           self);
+
+  self->camera_added_signal_id = g_signal_connect_swapped (self->camera_om,
+                                                           "object-added",
+                                                           G_CALLBACK (on_camera_added_cb),
+                                                           self);
+
+  wp_core_install_object_manager (self->core, self->client_om);
 }
 
 static void
@@ -297,6 +328,8 @@ static void
 xdp_wp_client_manager_constructed (GObject *object)
 {
   XdpWpClientManager *self = XDP_WP_CLIENT_MANAGER (object);
+  g_autoptr(WpObjectInterest) interest = NULL;
+  WpObjectManager *node_factory_om;
 
   G_OBJECT_CLASS (xdp_wp_client_manager_parent_class)->constructed (object);
 
@@ -317,6 +350,17 @@ xdp_wp_client_manager_constructed (GObject *object)
       on_dbus_connection_plugin_state_changed (self, NULL, NULL);
     }
 
+  interest = wp_object_interest_new_type (WP_TYPE_FACTORY);
+  wp_object_interest_add_constraint (interest,
+                                     WP_CONSTRAINT_TYPE_PW_PROPERTY,
+                                     PW_KEY_FACTORY_TYPE_NAME,
+                                     WP_CONSTRAINT_VERB_EQUALS,
+                                     g_variant_new_string ("PipeWire:Interface:ClientNode"));
+  g_assert (wp_object_interest_validate (interest, NULL));
+
+  node_factory_om = wp_object_manager_new (); /* Destroyed once the factory is added */
+  wp_object_manager_add_interest_full (node_factory_om, g_steal_pointer (&interest));
+
   self->client_om = wp_object_manager_new ();
   wp_object_manager_add_interest (self->client_om,
                                   WP_TYPE_CLIENT,
@@ -329,17 +373,12 @@ xdp_wp_client_manager_constructed (GObject *object)
                                   "+",
                                   NULL);
 
-  self->client_added_signal_id = g_signal_connect_swapped (self->client_om,
-                                                           "object-added",
-                                                           G_CALLBACK (on_client_added_cb),
-                                                           self);
+  g_signal_connect_swapped (node_factory_om,
+                            "object-added",
+                            G_CALLBACK (on_node_factory_added_cb),
+                            self);
 
-  self->camera_added_signal_id = g_signal_connect_swapped (self->camera_om,
-                                                           "object-added",
-                                                           G_CALLBACK (on_camera_added_cb),
-                                                           self);
-
-  wp_core_install_object_manager (self->core, self->client_om);
+  wp_core_install_object_manager (self->core, node_factory_om);
 }
 
 static void
